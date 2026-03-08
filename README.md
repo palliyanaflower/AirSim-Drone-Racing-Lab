@@ -11,12 +11,16 @@ docker build --network=host   --build-arg BASE_IMAGE=nvidia/cuda:12.3.1-devel-ub
 ```
 ./run_docker_image.sh airsim_neurips:12.3.1-devel-ubuntu22.04
 ```
-- Terminal 2 — inside the same container, run the baseline script (to view example world). Find container id using ```docker ps```.
+- Terminal 2 — attach to the same container from another terminal. Find container id using ```docker ps```.
 
 ```
 docker exec -it <container_id> bash
 ```
-
+- In Terminal 2, once inside docker container, run the baseline script (to view example world).
+```
+cd AirSim-Drone-Racing-Lab/baselines/
+python python3 baseline_racer.py --level_name Soccer_Field_Easy
+```
 
 # -----------------------OLD-----------------------
 # AirSim Drone Racing Lab 
@@ -54,4 +58,5 @@ Note: If you use this repository in your research, please cite our pre-print, [A
 
 ## Questions
 Please open a Github Issue on **this** repository (not [AirSim](https://github.com/microsoft/AirSim)) for any technical questions associated with AirSim Drone Racing Lab. 
+
 
