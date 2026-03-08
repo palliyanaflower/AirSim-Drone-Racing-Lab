@@ -19,7 +19,7 @@ docker exec -it <container_id> bash
 - In Terminal 2, once inside docker container, run the baseline script (to view example world).
 ```
 cd AirSim-Drone-Racing-Lab/baselines/
-python python3 baseline_racer.py --level_name Soccer_Field_Easy
+python3 baseline_racer.py --level_name Soccer_Field_Easy
 ```
 
 # -----------------------OLD-----------------------
@@ -58,5 +58,6 @@ Note: If you use this repository in your research, please cite our pre-print, [A
 
 ## Questions
 Please open a Github Issue on **this** repository (not [AirSim](https://github.com/microsoft/AirSim)) for any technical questions associated with AirSim Drone Racing Lab. 
+
 
 
