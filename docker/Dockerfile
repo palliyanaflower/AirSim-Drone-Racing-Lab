@@ -74,7 +74,8 @@ RUN apt-get update --fix-missing && \
 
 # Python packages
 RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
-	python3 -m pip install --no-cache-dir airsimdroneracinglab
+	python3 -m pip install --no-cache-dir airsimdroneracinglab && \
+	python3 -m pip install --no-cache-dir opencv-python
 
 # Create user
 RUN useradd -ms /bin/bash airsim_user && \
