@@ -1,3 +1,24 @@
+# -----------------------New-----------------------
+# Running example code / viewing world
+- Clone repo
+- Build Docker container (this one has newer Ubuntu version than original)
+  
+```
+docker build --network=host   --build-arg BASE_IMAGE=nvidia/cuda:12.3.1-devel-ubuntu22.04   -t airsim_neurips:12.3.1-devel-ubuntu22.04   -f Dockerfile .
+```
+
+- Terminal 1 — start the simulator (with window mode to view simulator)
+```
+./run_docker_image.sh airsim_neurips:12.3.1-devel-ubuntu22.04
+```
+- Terminal 2 — inside the same container, run the baseline script (to view example world). Find container id using ```docker ps```.
+
+```
+docker exec -it <container_id> bash
+```
+
+
+# -----------------------OLD-----------------------
 # AirSim Drone Racing Lab 
 
 <img src="https://github.com/madratman/airsim_neurips_gifs/blob/master/imgs/neurips_b99_3_drones.gif?raw=true" width="275"> <img src="https://github.com/madratman/airsim_neurips_gifs/blob/master/imgs/neurips_soccer_field_8_drones.gif?raw=true" width="275"> <img src="https://github.com/madratman/airsim_neurips_gifs/blob/master/imgs/neurips_zhangjiajie_4_drones.gif?raw=true" width="275">
@@ -33,3 +54,4 @@ Note: If you use this repository in your research, please cite our pre-print, [A
 
 ## Questions
 Please open a Github Issue on **this** repository (not [AirSim](https://github.com/microsoft/AirSim)) for any technical questions associated with AirSim Drone Racing Lab. 
+
