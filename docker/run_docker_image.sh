@@ -31,11 +31,14 @@ if [[ $2 = "headless" ]]; then
     SDL_VIDEODRIVER_VALUE='offscreen'
 fi
 
+# pip install "numpy<2.0" --break-system-packages
 docker run -it \
     --gpus all \
     --ipc=host \
     --privileged \
     --net=host \
+    -v /home/kalliyanlay/Documents/BYU/research/AirSim-Drone-Racing-Lab/scripts:/home/airsim_user/AirSim-Drone-Racing-Lab/scripts \
+    -v /home/kalliyanlay/Documents/BYU/research/AirSim-Drone-Racing-Lab/baselines:/home/airsim_user/AirSim-Drone-Racing-Lab/baselines \
     -e NVIDIA_DRIVER_CAPABILITIES=all \
     -e NVIDIA_VISIBLE_DEVICES=all \
     -e DISPLAY=$DISPLAY \

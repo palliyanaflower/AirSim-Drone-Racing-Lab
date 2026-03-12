@@ -116,6 +116,7 @@ class BaselineRacer(object):
             vehicle_name=self.drone_name,
         ).join()
 
+    # IMPORTANT: Get ground truth gates
     # stores gate ground truth poses as a list of airsim.Pose() objects in self.gate_poses_ground_truth
     def get_ground_truth_gate_poses(self):
         gate_names_sorted_bad = sorted(self.airsim_client.simListSceneObjects("Gate.*"))
@@ -320,7 +321,7 @@ class BaselineRacer(object):
         # get uncompressed fpv cam image
         request = [airsim.ImageRequest("fpv_cam", airsim.ImageType.Scene, False, False)]
         response = self.airsim_client_images.simGetImages(request)
-        img_rgb_1d = np.fromstring(response[0].image_data_uint8, dtype=np.uint8)
+        img_rgb_1d = np.frombuffer(response[0].image_data_uint8, dtype=np.uint8)
         img_rgb = img_rgb_1d.reshape(response[0].height, response[0].width, 3)
         if self.viz_image_cv2:
             cv2.imshow("img_rgb", img_rgb)
