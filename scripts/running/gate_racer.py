@@ -23,6 +23,7 @@ Init sequence (must match baseline_racer.py exactly):
 import argparse
 import math
 import time
+import numpy as np
 
 import airsimdroneracinglab as airsim
 
@@ -78,6 +79,61 @@ def nearest_neighbour_sort(gates, start_pos):
 
     return ordered
 
+class GeometricController:
+    def __init__(self):
+        self.kx = np.array([4.0, 4.0, 6.0])
+        self.kv = np.array([3.0, 3.0, 4.0])
+        self.kR = np.array([2.0, 2.0, 2.0])
+        self.kW = np.array([0.1, 0.1, 0.1])
+        self.mass = 1.0
+        self.g = 9.81
+
+    def update(self, state, desired):
+        # state: {pos, vel, R (3x3), omega (3)}
+        # desired: {pos_d, vel_d, acc_d, yaw_d}
+
+        err_pos = state["pos"] - desired["pos"]
+        err_vel = state["vel"] - desired["vel"]
+
+        # desired force
+        F_des = (
+            -self.kx * err_pos
+            - self.kv * err_vel
+            + self.mass * desired["acc"]
+            + np.array([0, 0, self.mass * self.g])
+        )
+
+        # thrust (project onto body z-axis)
+        thrust = F_des @ (state["R"] @ np.array([0, 0, 1]))
+
+        # desired body z direction
+        z_des = F_des / np.linalg.norm(F_des)
+        yaw = desired["yaw"]
+        x_c = np.array([np.cos(yaw), np.sin(yaw), 0])
+        y_des = np.cross(z_des, x_c)
+        y_des /= np.linalg.norm(y_des)
+        x_des = np.cross(y_des, z_des)
+
+        R_des = np.column_stack((x_des, y_des, z_des))
+
+        # attitude error
+        R_err = 0.5 * (R_des.T @ state["R"] - state["R"].T @ R_des)
+        e_R = np.array([R_err[2,1], R_err[0,2], R_err[1,0]])
+
+        # body rate error
+        e_W = state["omega"] - np.zeros(3)
+
+        # desired moments (not used directly in AirSim)
+        M = -self.kR * e_R - self.kW * e_W
+
+        # Convert to roll/pitch/yaw_rate:
+        roll_cmd  = e_R[0] * 5.0
+        pitch_cmd = e_R[1] * 5.0
+        yaw_rate_cmd = e_R[2] * 5.0
+
+        throttle_cmd = np.clip(thrust / (self.mass * self.g), 0.0, 1.0)
+
+        return throttle_cmd, roll_cmd, pitch_cmd, yaw_rate_cmd
 
 # ── main ───────────────────────────────────────────────────────────────────────
 
@@ -92,7 +148,7 @@ def main():
 
     DRONE_NAME = "drone_1"
 
-    # ── 1. connect & load level ────────────────────────────────────────────────
+    # ── 1. Connect & load level ────────────────────────────────────────────────
     print("[+] Connecting to AirSim ...")
     client = airsim.MultirotorClient()
     client.confirmConnection()
@@ -102,11 +158,14 @@ def main():
     client.confirmConnection()  # failsafe: reconnect after level reload
     time.sleep(2.0)             # let the environment load completely
 
-    # ── 2. start race  (MUST come before enableApiControl) ────────────────────
+    # Controller 
+    controller = GeometricController()
+
+    # ── 2. Start race  (MUST come before enableApiControl) ────────────────────
     print(f"[+] Starting race (tier={args.tier}) ...")
     client.simStartRace(tier=args.tier)
 
-    # ── 3. discover & sort gates ───────────────────────────────────────────────
+    # ── 3. Discover & sort gates ───────────────────────────────────────────────
     print("[+] Scanning scene objects for gates ...")
     all_objects = client.simListSceneObjects()
     gate_names = sorted([n for n in all_objects if "Gate" in n])
@@ -136,25 +195,21 @@ def main():
     for i, (name, _) in enumerate(ordered_gates):
         print(f"    {i+1}. {name}")
 
-    # ── 4. arm & take off ─────────────────────────────────────────────────────
+    # ── 4. Arm & take off ─────────────────────────────────────────────────────
     print("\n[+] Enabling API control and arming ...")
     client.enableApiControl(vehicle_name=DRONE_NAME)
     client.arm(vehicle_name=DRONE_NAME)
 
     print("[+] Taking off ...")
     client.takeoffAsync(vehicle_name=DRONE_NAME).join()
-    # time.sleep(1.0)
 
-    # # climb to a safe altitude before racing (NED: negative z = up)
-    # TAKEOFF_Z = -2.5
-    # client.moveToZAsync(TAKEOFF_Z, velocity=2.0, vehicle_name=DRONE_NAME).join()
-    # time.sleep(0.5)
-
-    # ── 5. fly through gates ───────────────────────────────────────────────────
+    # ── 5. Fly through gates ───────────────────────────────────────────────────
     print("\n[+] Flying through gates ...\n")
 
     try:
         for i, (name, pose) in enumerate(ordered_gates):
+
+            # TODO: Replace with gate pose estimation
             gx = pose.position.x_val
             gy = pose.position.y_val
             gz = pose.position.z_val + args.z_offset
@@ -176,6 +231,12 @@ def main():
                 vehicle_name=DRONE_NAME,
             ).join()
 
+            # # geometric controller
+            # throttle_cmd, roll_cmd, pitch_cmd, yaw_rate_cmd = controller.update(state, desired)
+            # client.moveByAngleThrottleAsync(
+            #     pitch_cmd, roll_cmd, throttle_cmd, yaw_rate_cmd, duration=0.03
+            # )
+
             time.sleep(0.2)
 
     except Exception as e:
@@ -186,7 +247,6 @@ def main():
         print("\n[+] Landing ...")
         client.landAsync(vehicle_name=DRONE_NAME).join()
         client.disarm(vehicle_name=DRONE_NAME)
-        # client.enableApiControl(False, vehicle_name=DRONE_NAME)
         print("[+] Done.")
 
 if __name__ == "__main__":
